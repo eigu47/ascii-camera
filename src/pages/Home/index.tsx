@@ -1,39 +1,98 @@
-import preactLogo from '../../assets/preact.svg';
-import './style.css';
+import { useEffect, useRef, useState } from "preact/hooks";
+import Camera from "@/components/Camera";
+import Gallery from "@/components/Gallery";
 
-export function Home() {
-	return (
-		<div class="home">
-			<a href="https://preactjs.com" target="_blank">
-				<img src={preactLogo} alt="Preact logo" height="160" width="160" />
-			</a>
-			<h1>Get Started building Vite-powered Preact Apps </h1>
-			<section>
-				<Resource
-					title="Learn Preact"
-					description="If you're new to Preact, try the interactive tutorial to learn important concepts"
-					href="https://preactjs.com/tutorial"
-				/>
-				<Resource
-					title="Differences to React"
-					description="If you're coming from React, you may want to check out our docs to see where Preact differs"
-					href="https://preactjs.com/guide/v10/differences-to-react"
-				/>
-				<Resource
-					title="Learn Vite"
-					description="To learn more about Vite and how you can customize it to fit your needs, take a look at their excellent documentation"
-					href="https://vitejs.dev"
-				/>
-			</section>
-		</div>
-	);
-}
+export type Photo = {
+  url: string;
+  timestamp: string;
+};
 
-function Resource(props) {
-	return (
-		<a href={props.href} target="_blank" class="resource">
-			<h2>{props.title}</h2>
-			<p>{props.description}</p>
-		</a>
-	);
+export default function Home() {
+  const [isCamera, setIsCamera] = useState(true);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [photos, setPhotos] = useState<Photo[]>([]);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (isCamera) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => stopCamera();
+  }, [isCamera, facingMode]);
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facingMode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function stopCamera() {
+    const stream = videoRef.current?.srcObject as MediaStream | null;
+    if (stream) {
+      const tracks = stream.getTracks();
+      tracks.forEach((track) => track.stop());
+    }
+  }
+
+  function takePhoto() {
+    const context = canvasRef.current?.getContext("2d");
+    if (!videoRef.current || !canvasRef.current || !context) return;
+
+    canvasRef.current.width = videoRef.current.videoWidth;
+    canvasRef.current.height = videoRef.current.videoHeight;
+
+    context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+
+    const photo = canvasRef.current.toDataURL("image/jpeg", 0.8);
+    setPhotos([{ url: photo, timestamp: Date.now().toString() }, ...photos]);
+  }
+
+  function downloadPhoto(photo: Photo) {
+    const link = document.createElement("a");
+    link.href = photo.url;
+    link.download = `photo-${new Date(Number(photo.timestamp)).toISOString().slice(0, 19)}.jpeg`;
+    link.click();
+  }
+
+  function deletePhoto(photo: Photo) {
+    setPhotos(photos.filter((p) => p.timestamp !== photo.timestamp));
+  }
+
+  function switchCamera() {
+    setFacingMode(facingMode === "user" ? "environment" : "user");
+  }
+
+  return (
+    <div className="h-screen bg-black text-white">
+      {isCamera ? (
+        <Camera
+          videoRef={videoRef}
+          canvasRef={canvasRef}
+          photos={photos}
+          setIsCamera={setIsCamera}
+          takePhoto={takePhoto}
+          switchCamera={switchCamera}
+        />
+      ) : (
+        <Gallery photos={photos} setIsCamera={setIsCamera} downloadPhoto={downloadPhoto} deletePhoto={deletePhoto} />
+      )}
+    </div>
+  );
 }
