@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "preact/hooks";
 import Camera from "@/components/Camera";
 import Gallery from "@/components/Gallery";
+import { DEFAULT_CAMERA_RESOLUTION } from "@/lib/constants";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 export type Photo = {
   url: string;
@@ -30,8 +31,8 @@ export default function Home() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: DEFAULT_CAMERA_RESOLUTION.width },
+          height: { ideal: DEFAULT_CAMERA_RESOLUTION.height },
         },
       });
 
@@ -40,6 +41,15 @@ export default function Home() {
       }
     } catch (error) {
       console.error(error);
+    }
+
+    if (canvasRef.current) {
+      canvasRef.current.width = DEFAULT_CAMERA_RESOLUTION.width;
+      canvasRef.current.height = DEFAULT_CAMERA_RESOLUTION.height;
+      const context = canvasRef.current.getContext("2d");
+      if (context) {
+        context.setTransform(-1, 0, 0, 1, canvasRef.current.width, 0);
+      }
     }
   }
 
@@ -55,11 +65,7 @@ export default function Home() {
     const context = canvasRef.current?.getContext("2d");
     if (!videoRef.current || !canvasRef.current || !context) return;
 
-    canvasRef.current.width = videoRef.current.videoWidth;
-    canvasRef.current.height = videoRef.current.videoHeight;
-
     context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-
     const photo = canvasRef.current.toDataURL("image/jpeg", 0.8);
     setPhotos([{ url: photo, timestamp: Date.now().toString() }, ...photos]);
   }

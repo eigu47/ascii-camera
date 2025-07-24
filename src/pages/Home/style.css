@@ -4,3 +4,9 @@
 @theme {
   --font-display: "Roboto", sans-serif;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
