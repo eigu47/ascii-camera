@@ -1,4 +1,10 @@
-import { LocationProvider, Router, Route, hydrate, prerender as ssr } from "preact-iso";
+import {
+  LocationProvider,
+  Router,
+  Route,
+  hydrate,
+  prerender as ssr,
+} from "preact-iso";
 
 import Home from "./pages/Home/index.jsx";
 import { NotFound } from "./pages/_404.jsx";

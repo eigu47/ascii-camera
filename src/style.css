@@ -4,8 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-html, body {
-  font-family: 'Roboto', Arial, Helvetica, sans-serif;
+html,
+body {
+  font-family: "Roboto", Arial, Helvetica, sans-serif;
 }
 
 @theme inline {

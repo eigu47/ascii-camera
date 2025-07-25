@@ -10,7 +10,9 @@ export type Photo = {
 
 export default function Home() {
   const [isCamera, setIsCamera] = useState(true);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment",
+  );
   const [photos, setPhotos] = useState<Photo[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -65,7 +67,13 @@ export default function Home() {
     const context = canvasRef.current?.getContext("2d");
     if (!videoRef.current || !canvasRef.current || !context) return;
 
-    context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+    context.drawImage(
+      videoRef.current,
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height,
+    );
     const photo = canvasRef.current.toDataURL("image/jpeg", 0.8);
     setPhotos([{ url: photo, timestamp: Date.now().toString() }, ...photos]);
   }
@@ -97,7 +105,12 @@ export default function Home() {
           switchCamera={switchCamera}
         />
       ) : (
-        <Gallery photos={photos} setIsCamera={setIsCamera} downloadPhoto={downloadPhoto} deletePhoto={deletePhoto} />
+        <Gallery
+          photos={photos}
+          setIsCamera={setIsCamera}
+          downloadPhoto={downloadPhoto}
+          deletePhoto={deletePhoto}
+        />
       )}
     </div>
   );
