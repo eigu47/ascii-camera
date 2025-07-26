@@ -1,20 +1,27 @@
 import { Button } from "@/components/ui/button";
-import { Photo } from "@/pages/Home";
+import { Photo, UseState } from "@/lib/types";
 import { useAutoAnimate } from "@formkit/auto-animate/preact";
 import { Download, Trash } from "lucide-preact";
 
 export default function Gallery({
-  photos,
+  photoState: [photos, setPhotos],
   setIsCamera,
-  downloadPhoto,
-  deletePhoto,
 }: {
-  photos: Photo[];
+  photoState: UseState<Photo[]>;
   setIsCamera: (isCamera: boolean) => void;
-  downloadPhoto: (photo: Photo) => void;
-  deletePhoto: (photo: Photo) => void;
 }) {
   const [parent] = useAutoAnimate();
+
+  function downloadPhoto(photo: Photo) {
+    const link = document.createElement("a");
+    link.href = photo.url;
+    link.download = `photo-${new Date(Number(photo.timestamp)).toISOString().slice(0, 19)}.jpeg`;
+    link.click();
+  }
+
+  function deletePhoto(photo: Photo) {
+    setPhotos(photos.filter((p) => p.timestamp !== photo.timestamp));
+  }
 
   return (
     <div className="flex h-screen flex-col overflow-y-auto bg-black p-4 text-white">

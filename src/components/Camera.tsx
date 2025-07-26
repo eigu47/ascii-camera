@@ -1,28 +1,88 @@
 import { Button } from "@/components/ui/button";
+import { DEFAULT_CAMERA_RESOLUTION } from "@/lib/constants";
+import { Photo, UseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Photo } from "@/pages/Home";
 import { ChevronsUp, RefreshCw } from "lucide-preact";
-import { RefObject } from "preact";
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 export default function Camera({
-  videoRef,
-  canvasRef,
-  photos,
-  setIsCamera,
-  takePhoto,
-  switchCamera,
+  cameraState: [isCamera, setIsCamera],
+  photoState: [photos, setPhotos],
 }: {
-  videoRef: RefObject<HTMLVideoElement>;
-  canvasRef: RefObject<HTMLCanvasElement>;
-  photos: Photo[];
-  setIsCamera: (isCamera: boolean) => void;
-  takePhoto: () => void;
-  switchCamera: () => void;
+  cameraState: UseState<boolean>;
+  photoState: UseState<Photo[]>;
 }) {
+  const [facingMode, setFacingMode] = useState<"user" | "environment">(
+    "environment",
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarBtnRotation, setSidebarBtnRotation] = useState(0);
   const [selectedRadio, setSelectedRadio] = useState("option1");
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (isCamera) {
+      void startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [isCamera, facingMode]);
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: facingMode,
+          width: { ideal: DEFAULT_CAMERA_RESOLUTION.width },
+          height: { ideal: DEFAULT_CAMERA_RESOLUTION.height },
+        },
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "Unknown error");
+    }
+
+    if (canvasRef.current) {
+      canvasRef.current.width = DEFAULT_CAMERA_RESOLUTION.width;
+      canvasRef.current.height = DEFAULT_CAMERA_RESOLUTION.height;
+      const context = canvasRef.current.getContext("2d");
+      context?.setTransform(-1, 0, 0, 1, canvasRef.current.width, 0);
+    }
+  }
+
+  function stopCamera() {
+    const stream = videoRef.current?.srcObject as MediaStream | null;
+    stream?.getTracks().forEach((track) => track.stop());
+  }
+
+  function takePhoto() {
+    const context = canvasRef.current?.getContext("2d");
+    if (!videoRef.current || !canvasRef.current || !context) return;
+
+    context.drawImage(
+      videoRef.current,
+      0,
+      0,
+      canvasRef.current.width,
+      canvasRef.current.height,
+    );
+    const photo = canvasRef.current.toDataURL("image/jpeg", 0.8);
+    setPhotos([{ url: photo, timestamp: Date.now().toString() }, ...photos]);
+  }
+
+  function switchCamera() {
+    setFacingMode(facingMode === "user" ? "environment" : "user");
+  }
 
   return (
     <div className="relative flex h-full w-full flex-row overflow-hidden">
@@ -58,7 +118,7 @@ export default function Camera({
       >
         <ChevronsUp
           className="h-6 w-6 text-black transition-transform duration-200"
-          style={{ transform: `rotate(${sidebarBtnRotation}deg)` }}
+          style={{ transform: `rotate(${sidebarBtnRotation.toString()}deg)` }}
         />
       </Button>
       {/* Sidebar */}
@@ -113,7 +173,7 @@ export default function Camera({
         >
           {photos.length > 0 ? (
             <img
-              src={photos[0].url}
+              src={photos[0]?.url}
               alt="Latest photo"
               className="h-full w-full object-cover"
             />
