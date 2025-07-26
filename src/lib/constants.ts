@@ -1,4 +1,4 @@
-export const DEFAULT_CAMERA_RESOLUTION = {
-  width: 1280,
-  height: 720,
+export const CAMERA_RES = {
+  width: 1280 / 10,
+  height: 720 / 10,
 };

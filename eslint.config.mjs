@@ -3,6 +3,7 @@
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
   ...tseslint.configs.strictTypeChecked,
@@ -21,6 +22,7 @@ export default tseslint.config(
     },
     plugins: {
       react,
+      "react-hooks": reactHooks,
     },
     settings: {
       react: {
@@ -33,6 +35,10 @@ export default tseslint.config(
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
       "react/no-unknown-property": ["error", { ignore: ["class"] }],
+
+      // React Hooks rules
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
 
       // TypeScript rules adjustments
       "@typescript-eslint/no-unsafe-assignment": "warn",

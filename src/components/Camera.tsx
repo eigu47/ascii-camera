@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { DEFAULT_CAMERA_RESOLUTION } from "@/lib/constants";
+import { CAMERA_RES } from "@/lib/constants";
 import { Photo, UseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChevronsUp, RefreshCw } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
+
+interface Settings {
+  facingMode: "user" | "environment";
+}
 
 export default function Camera({
   cameraState: [isCamera, setIsCamera],
@@ -12,57 +16,137 @@ export default function Camera({
   cameraState: UseState<boolean>;
   photoState: UseState<Photo[]>;
 }) {
-  const [facingMode, setFacingMode] = useState<"user" | "environment">(
-    "environment",
-  );
+  const [settings, setSettings] = useState<Settings>({
+    facingMode: "environment",
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarBtnRotation, setSidebarBtnRotation] = useState(0);
-  const [selectedRadio, setSelectedRadio] = useState("option1");
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hiddenCanvasRef = useRef<HTMLCanvasElement>(null);
+  const animationFrameRef = useRef<number>();
 
   useEffect(() => {
-    if (isCamera) {
-      void startCamera();
-    } else {
-      stopCamera();
+    const video = videoRef.current;
+    if (!video) return;
+
+    void startCamera(settings);
+
+    function renderAscii() {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const hiddenCanvas = hiddenCanvasRef.current;
+      const ctx = canvas?.getContext("2d", {
+        willReadFrequently: true,
+      });
+      const hiddenCtx = hiddenCanvas?.getContext("2d", {
+        willReadFrequently: true,
+      });
+      if (!video || !canvas || !hiddenCanvas || !ctx || !hiddenCtx) return;
+
+      const { videoWidth: width, videoHeight: height } = video;
+
+      // Draw video frame to hidden canvas (scaled down)
+      hiddenCtx.drawImage(video, 0, 0, width, height);
+
+      // Get pixel data
+      const imageData = hiddenCtx.getImageData(0, 0, width, height);
+      const pixels = imageData.data;
+
+      // Clear main canvas
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Set text properties
+      ctx.fillStyle = "#00ff00";
+      ctx.font = "10px monospace";
+      ctx.textBaseline = "top";
+
+      // Convert pixels to ASCII
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const pixelIndex = (y * width + x) * 4;
+          const r = pixels[pixelIndex] ?? 0;
+          const g = pixels[pixelIndex + 1] ?? 0;
+          const b = pixels[pixelIndex + 2] ?? 0;
+
+          // Calculate brightness (0-255)
+          const brightness = (r + g + b) / 3;
+
+          // Map brightness to ASCII character (inverted)
+          const charIndex = Math.floor(
+            ((255 - brightness) / 255) * (ASCII_CHARS.length - 1),
+          );
+
+          const char = ASCII_CHARS[charIndex] ?? " ";
+
+          // Draw character
+          ctx.fillText(char, x * 8, y * 12);
+        }
+      }
+
+      // Continue animation
+      animationFrameRef.current = requestAnimationFrame(renderAscii);
     }
 
+    video.addEventListener("loadeddata", renderAscii);
     return () => {
       stopCamera();
+      video.removeEventListener("loadeddata", renderAscii);
     };
-  }, [isCamera, facingMode]);
+  }, [settings]);
 
-  async function startCamera() {
+  async function startCamera(settings: Settings) {
+    if (!videoRef.current) return;
+
+    const { width, height } = CAMERA_RES;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: facingMode,
-          width: { ideal: DEFAULT_CAMERA_RESOLUTION.width },
-          height: { ideal: DEFAULT_CAMERA_RESOLUTION.height },
+          facingMode: settings.facingMode,
+          width: { ideal: width },
+          height: { ideal: height },
         },
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      videoRef.current.srcObject = stream;
+      videoRef.current.onloadeddata = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const hiddenCanvas = hiddenCanvasRef.current;
+        if (!video || !canvas || !hiddenCanvas) return;
+
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+
+        canvas.width = width * 8;
+        canvas.height = height * 12;
+        hiddenCanvas.width = width;
+        hiddenCanvas.height = height;
+
+        // Set transform for mirroring
+        hiddenCanvas.getContext("2d")?.setTransform(-1, 0, 0, 1, width, 0);
+      };
+      await videoRef.current.play();
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : "Unknown error");
-    }
-
-    if (canvasRef.current) {
-      canvasRef.current.width = DEFAULT_CAMERA_RESOLUTION.width;
-      canvasRef.current.height = DEFAULT_CAMERA_RESOLUTION.height;
-      const context = canvasRef.current.getContext("2d");
-      context?.setTransform(-1, 0, 0, 1, canvasRef.current.width, 0);
+      if (error instanceof Error) {
+        alert(error.message);
+      }
     }
   }
 
   function stopCamera() {
     const stream = videoRef.current?.srcObject as MediaStream | null;
     stream?.getTracks().forEach((track) => track.stop());
+
+    // Cancel animation frame to stop rendering
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = undefined;
+    }
   }
 
   function takePhoto() {
@@ -76,12 +160,25 @@ export default function Camera({
       canvasRef.current.width,
       canvasRef.current.height,
     );
-    const photo = canvasRef.current.toDataURL("image/jpeg", 0.8);
-    setPhotos([{ url: photo, timestamp: Date.now().toString() }, ...photos]);
+
+    setPhotos([
+      {
+        url: canvasRef.current.toDataURL("image/jpeg", 0.8),
+        timestamp: Date.now().toString(),
+      },
+      ...photos,
+    ]);
   }
 
   function switchCamera() {
-    setFacingMode(facingMode === "user" ? "environment" : "user");
+    setSettings((prev) => {
+      const settings: Settings = {
+        ...prev,
+        facingMode: prev.facingMode == "user" ? "environment" : "user",
+      };
+      void startCamera(settings);
+      return settings;
+    });
   }
 
   return (
@@ -95,15 +192,13 @@ export default function Camera({
             : "translate-y-0 md:translate-x-0 md:translate-y-0",
         )}
       >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
+        <video ref={videoRef} autoPlay playsInline muted className="hidden" />
+        <canvas
+          ref={canvasRef}
           className="h-full w-full object-cover"
-          style={{ transform: "scaleX(-1)" }}
+          style={{ imageRendering: "pixelated" }}
         />
-        <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={hiddenCanvasRef} className="hidden" />
       </div>
       {/* Open/Close Sidebar Button */}
       <Button
@@ -133,31 +228,9 @@ export default function Camera({
       >
         {/* Sidebar Content */}
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-          {/* Radio Controls */}
-          <div className="mb-2 font-medium">Options</div>
-          <div className="flex flex-col gap-2">
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="camera-option"
-                value="option1"
-                checked={selectedRadio === "option1"}
-                onChange={() => setSelectedRadio("option1")}
-                className="accent-white"
-              />
-              <span>Option 1</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="radio"
-                name="camera-option"
-                value="option2"
-                checked={selectedRadio === "option2"}
-                onChange={() => setSelectedRadio("option2")}
-                className="accent-white"
-              />
-              <span>Option 2</span>
-            </label>
+          <div className="mb-2 font-medium">ASCII Camera</div>
+          <div className="text-sm text-gray-400">
+            Real-time ASCII art from your camera feed.
           </div>
         </div>
       </aside>
@@ -204,3 +277,6 @@ export default function Camera({
     </div>
   );
 }
+
+const ASCII_CHARS =
+  "                  .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";

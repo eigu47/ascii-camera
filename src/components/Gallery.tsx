@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { useAutoAnimate } from "@/lib/hooks";
 import { Photo, UseState } from "@/lib/types";
-import { useAutoAnimate } from "@formkit/auto-animate/preact";
 import { Download, Trash } from "lucide-preact";
 
 export default function Gallery({
@@ -10,7 +10,7 @@ export default function Gallery({
   photoState: UseState<Photo[]>;
   setIsCamera: (isCamera: boolean) => void;
 }) {
-  const [parent] = useAutoAnimate();
+  const [parent] = useAutoAnimate<HTMLDivElement>();
 
   function downloadPhoto(photo: Photo) {
     const link = document.createElement("a");
