@@ -50,6 +50,7 @@ export default tseslint.config(
       "@typescript-eslint/require-await": "warn",
       "@typescript-eslint/no-unused-vars": "warn",
       "@typescript-eslint/no-confusing-void-expression": "off",
+      "@typescript-eslint/no-non-null-assertion": "warn",
     },
   },
   {
