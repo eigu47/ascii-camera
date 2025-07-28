@@ -1,7 +1,7 @@
 import Sidebar from "@/components/CameraSidebar";
 import { Button } from "@/components/ui/button";
-import { ASCII_CHARS, CAMERA_RES } from "@/lib/constants";
-import { Photo, Settings, UseState } from "@/lib/types";
+import { ASCII_CHARS, CAMERA_RES, CHAR_RES } from "@/lib/constants";
+import { Photo, AnimationSetting, UseState, CameraSetting } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-preact";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -13,12 +13,13 @@ export default function Camera({
   cameraState: UseState<boolean>;
   photoState: UseState<Photo[]>;
 }) {
-  const settingsState = useState<Settings>({
-    facingMode: "environment",
+  const animationSettingRef = useRef<AnimationSetting>({
     chars: "detailed",
     res: 1,
   });
-  const [settings, setSettings] = settingsState;
+  const [cameraSetting, setCameraSetting] = useState<CameraSetting>({
+    facingMode: "environment",
+  });
   const sidebarState = useState(false);
   const [sidebarOpen, setSidebarOpen] = sidebarState;
 
@@ -30,7 +31,16 @@ export default function Camera({
     const video = videoRef.current;
     if (!video) return;
 
-    void startCamera(settings);
+    void startCamera(cameraSetting);
+
+    return () => {
+      stopCamera();
+    };
+  }, [cameraSetting]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
 
     let animationReq = 0;
     function renderAscii() {
@@ -45,7 +55,7 @@ export default function Camera({
       });
       if (!video || !canvas || !hiddenCanvas || !ctx || !hiddenCtx) return;
 
-      const { videoWidth: width, videoHeight: height } = video;
+      const { width, height } = hiddenCanvas;
       hiddenCtx.drawImage(video, 0, 0, width, height);
       const imageData = hiddenCtx.getImageData(0, 0, width, height);
       const pixels = imageData.data;
@@ -63,7 +73,7 @@ export default function Camera({
           const g = pixels[pixelIndex + 1] ?? 0;
           const b = pixels[pixelIndex + 2] ?? 0;
 
-          const chars = ASCII_CHARS[settings.chars];
+          const chars = ASCII_CHARS[animationSettingRef.current.chars];
           const brightness = (r + g + b) / 3;
           const charIndex = Math.floor((brightness / 255) * (chars.length - 1));
 
@@ -75,46 +85,30 @@ export default function Camera({
       animationReq = requestAnimationFrame(renderAscii);
     }
 
-    video.addEventListener("loadeddata", renderAscii);
+    video.addEventListener("play", renderAscii, { once: true });
 
     return () => {
-      (video.srcObject as MediaStream)
-        .getTracks()
-        .forEach((track) => track.stop());
-
       cancelAnimationFrame(animationReq);
-      video.removeEventListener("loadeddata", renderAscii);
+      video.removeEventListener("play", renderAscii);
     };
-  }, [settings]);
+  }, []);
 
-  async function startCamera({ facingMode, res }: Settings) {
+  async function startCamera({ facingMode }: CameraSetting) {
     if (!videoRef.current) return;
+    stopCamera();
 
     const { width, height } = CAMERA_RES;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode,
-          width: { ideal: width * res },
-          height: { ideal: height * res },
+          width: { ideal: width },
+          height: { ideal: height },
         },
       });
 
       videoRef.current.srcObject = stream;
-      videoRef.current.onloadeddata = () => {
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const hiddenCanvas = hiddenCanvasRef.current;
-        if (!video || !canvas || !hiddenCanvas) return;
-
-        const { videoWidth: width, videoHeight: height } = video;
-        canvas.width = width * 8;
-        canvas.height = height * 12;
-        hiddenCanvas.width = width;
-        hiddenCanvas.height = height;
-
-        hiddenCanvas.getContext("2d")?.setTransform(-1, 0, 0, 1, width, 0);
-      };
+      videoRef.current.onloadeddata = resizeCanvas;
       await videoRef.current.play();
     } catch (error) {
       console.error(error);
@@ -122,6 +116,33 @@ export default function Camera({
         alert(error.message);
       }
     }
+  }
+
+  function stopCamera() {
+    const video = videoRef.current;
+    if (!video) return;
+    (video.srcObject as MediaStream | null)
+      ?.getTracks()
+      .forEach((track) => track.stop());
+    video.srcObject = null;
+  }
+
+  function resizeCanvas() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const hiddenCanvas = hiddenCanvasRef.current;
+    if (!video || !canvas || !hiddenCanvas) return;
+
+    const { videoWidth: width, videoHeight: height } = video;
+    const asciiWidth = Math.floor(width / 10);
+    const asciiHeight = Math.floor(height / 10);
+
+    hiddenCanvas.width = asciiWidth;
+    hiddenCanvas.height = asciiHeight;
+    canvas.width = asciiWidth * CHAR_RES.width;
+    canvas.height = asciiHeight * CHAR_RES.height;
+
+    hiddenCanvas.getContext("2d")?.setTransform(-1, 0, 0, 1, asciiWidth, 0);
   }
 
   function takePhoto() {
@@ -146,7 +167,7 @@ export default function Camera({
   }
 
   function switchCamera() {
-    setSettings((prev) => ({
+    setCameraSetting((prev) => ({
       ...prev,
       facingMode: prev.facingMode == "user" ? "environment" : "user",
     }));
@@ -172,7 +193,10 @@ export default function Camera({
         <canvas ref={hiddenCanvasRef} className="hidden" />
       </div>
 
-      <Sidebar sidebarState={sidebarState} settingsState={settingsState} />
+      <Sidebar
+        sidebarState={sidebarState}
+        animationSettingRef={animationSettingRef}
+      />
 
       {/* Button Controls */}
       <div className="absolute bottom-0 left-0 flex w-full items-center justify-around border-t border-white/10 bg-neutral-900 bg-gradient-to-t from-black/80 to-transparent p-4 md:justify-center md:gap-50 md:border-0 md:bg-transparent">
