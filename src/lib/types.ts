@@ -12,6 +12,8 @@ export interface Photo {
 export interface CameraSettings {
   asciiMode: boolean;
   facingMode: "user" | "environment";
-  chars: keyof typeof ASCII_CHARS;
   res: number;
+  chars: keyof typeof ASCII_CHARS;
+  contrast: number;
+  brightness: number;
 }

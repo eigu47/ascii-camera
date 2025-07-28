@@ -1,12 +1,7 @@
 import CameraButtons from "@/components/CameraButtons";
 import CameraCanvas from "@/components/CameraCanvas";
 import Sidebar from "@/components/CameraSidebar";
-import {
-  ASCII_CHARS,
-  CAMERA_RES,
-  CHAR_RES,
-  INITIAL_STATE,
-} from "@/lib/constants";
+import { CAMERA_RES, CHAR_MAP, CHAR_RES, INITIAL_STATE } from "@/lib/constants";
 import { CameraSettings, Photo, SetState, UseState } from "@/lib/types";
 import { useEffect, useRef, useState } from "preact/hooks";
 
@@ -65,11 +60,8 @@ export default function Camera({
         const g = pixels[pixelIndex + 1] ?? 0;
         const b = pixels[pixelIndex + 2] ?? 0;
 
-        const chars = ASCII_CHARS[settingsRef.current.chars];
-        const brightness = (r + g + b) / 3;
-        const charIndex = Math.floor((brightness / 255) * (chars.length - 1));
-
-        const char = chars[charIndex] ?? " ";
+        const brightness = Math.floor((r + g + b) / 3);
+        const char = CHAR_MAP[settingsRef.current.chars][brightness] ?? " ";
 
         if (char != prevCharRef.current[y]?.[x]) {
           canvasCtx.clearRect(
@@ -142,11 +134,14 @@ export default function Camera({
     hiddenCtxRef.current = hiddenCtx;
     if (!canvasCtx || !hiddenCtx) return;
 
+    const filterStr = `contrast(${settingsRef.current.contrast.toString()}%) brightness(${settingsRef.current.brightness.toString()}%)`;
+
     const { videoWidth: width, videoHeight: height } = video;
     if (!settingsRef.current.asciiMode) {
       canvas.width = width;
       canvas.height = height;
       canvasCtx.setTransform(-1, 0, 0, 1, width, 0);
+      video.style.filter = filterStr;
       return;
     }
 
@@ -162,6 +157,7 @@ export default function Camera({
     canvasCtx.textBaseline = "top";
     canvasCtx.fillStyle = "#0f0";
     hiddenCtx.setTransform(-1, 0, 0, 1, asciiWidth, 0);
+    hiddenCtx.filter = filterStr;
 
     prevCharRef.current = Array.from({ length: asciiHeight }, () =>
       Array.from({ length: asciiWidth }, () => ""),

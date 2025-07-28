@@ -9,7 +9,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { ASCII_CHARS } from "@/lib/constants";
+import { ASCII_CHARS, INITIAL_STATE } from "@/lib/constants";
 import { CameraSettings, UseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChevronsUp } from "lucide-react";
@@ -58,6 +58,21 @@ export default function Sidebar({
         style={{ willChange: "transform" }}
       >
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+          <Switch
+            id="ascii-mode"
+            checked={asciiMode}
+            onCheckedChange={(val) => {
+              settingsRef.current!.asciiMode = val;
+              setAsciiMode(val);
+              resizeCanvas();
+              if (val) {
+                renderAscii();
+              }
+            }}
+          />
+
+          <Separator />
+
           <Select
             onValueChange={(chars: CameraSettings["chars"]) =>
               (settingsRef.current!.chars = chars)
@@ -91,17 +106,48 @@ export default function Sidebar({
 
           <Separator />
 
-          <Switch
-            id="ascii-mode"
-            checked={asciiMode}
-            onCheckedChange={(val) => {
-              settingsRef.current!.asciiMode = val;
-              setAsciiMode(val);
+          {/* <Select
+            onValueChange={(algo: CameraSettings["brightnessAlgo"]) =>
+              (settingsRef.current!.brightnessAlgo = algo)
+            }
+            defaultValue={settingsRef.current?.brightnessAlgo}
+          >
+            <SelectTrigger className="w-2/3">
+              <SelectValue placeholder="Select a brightness algo" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.keys(BRIGHTNESS_ALGOS).map((algo) => (
+                <SelectItem key={algo} value={algo}>
+                  {algo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select> */}
+
+          <Separator />
+
+          <Slider
+            onValueChange={([contrast]) => {
+              settingsRef.current!.contrast = contrast!;
               resizeCanvas();
-              if (val) {
-                renderAscii();
-              }
             }}
+            defaultValue={[INITIAL_STATE.contrast]}
+            max={500}
+            min={100}
+            step={1}
+          />
+
+          <Separator />
+
+          <Slider
+            onValueChange={([brightness]) => {
+              settingsRef.current!.brightness = brightness!;
+              resizeCanvas();
+            }}
+            defaultValue={[INITIAL_STATE.brightness]}
+            max={500}
+            min={50}
+            step={1}
           />
         </div>
       </aside>
