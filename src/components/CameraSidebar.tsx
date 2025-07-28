@@ -80,7 +80,7 @@ export default function Sidebar({
             defaultValue={settingsRef.current?.chars}
           >
             <SelectTrigger className="w-2/3">
-              <SelectValue placeholder="Select a chars set" />
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {Object.keys(ASCII_CHARS).map((type) => (
@@ -101,28 +101,8 @@ export default function Sidebar({
             defaultValue={[settingsRef.current!.res]}
             max={2}
             min={0.5}
-            step={0.1}
+            step={0.05}
           />
-
-          <Separator />
-
-          {/* <Select
-            onValueChange={(algo: CameraSettings["brightnessAlgo"]) =>
-              (settingsRef.current!.brightnessAlgo = algo)
-            }
-            defaultValue={settingsRef.current?.brightnessAlgo}
-          >
-            <SelectTrigger className="w-2/3">
-              <SelectValue placeholder="Select a brightness algo" />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(BRIGHTNESS_ALGOS).map((algo) => (
-                <SelectItem key={algo} value={algo}>
-                  {algo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select> */}
 
           <Separator />
 
@@ -134,7 +114,7 @@ export default function Sidebar({
             defaultValue={[INITIAL_STATE.contrast]}
             max={500}
             min={100}
-            step={1}
+            step={10}
           />
 
           <Separator />
@@ -146,8 +126,8 @@ export default function Sidebar({
             }}
             defaultValue={[INITIAL_STATE.brightness]}
             max={500}
-            min={50}
-            step={1}
+            min={100}
+            step={10}
           />
         </div>
       </aside>

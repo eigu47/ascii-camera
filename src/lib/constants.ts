@@ -7,7 +7,7 @@ export const INITIAL_STATE: CameraSettings = {
   res: 1,
   chars: "detailed",
   contrast: 200,
-  brightness: 100,
+  brightness: 200,
 } as const;
 
 export const CAMERA_RES = {
