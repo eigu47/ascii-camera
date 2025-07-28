@@ -1,99 +1,92 @@
 import Sidebar from "@/components/CameraSidebar";
 import { Button } from "@/components/ui/button";
-import { ASCII_CHARS, CAMERA_RES, CHAR_RES } from "@/lib/constants";
-import { Photo, AnimationSetting, UseState, CameraSetting } from "@/lib/types";
+import {
+  ASCII_CHARS,
+  CAMERA_RES,
+  CHAR_RES,
+  INITIAL_STATE,
+} from "@/lib/constants";
+import { CameraSettings, Photo, UseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 
 export default function Camera({
-  cameraState: [isCamera, setIsCamera],
+  cameraState: [, setIsCamera],
   photoState: [photos, setPhotos],
 }: {
   cameraState: UseState<boolean>;
   photoState: UseState<Photo[]>;
 }) {
-  const animationSettingRef = useRef<AnimationSetting>({
-    chars: "detailed",
-    res: 1,
-  });
-  const [cameraSetting, setCameraSetting] = useState<CameraSetting>({
-    facingMode: "environment",
-  });
+  const settingsRef = useRef<CameraSettings>(INITIAL_STATE);
   const sidebarState = useState(false);
-  const [sidebarOpen, setSidebarOpen] = sidebarState;
+  const [sidebarOpen] = sidebarState;
+  const asciiModeState = useState(INITIAL_STATE.asciiMode);
+  const [asciiMode] = asciiModeState;
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hiddenCanvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasCtxRef = useRef<CanvasRenderingContext2D>(null);
+  const hiddenCtxRef = useRef<CanvasRenderingContext2D>(null);
+  const prevCharRef = useRef<string[][]>([]);
+  const animationReqRef = useRef(0);
 
-  useEffect(() => {
+  const renderAscii = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
-
-    void startCamera(cameraSetting);
-
-    return () => {
-      stopCamera();
-    };
-  }, [cameraSetting]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    let animationReq = 0;
-    function renderAscii() {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const hiddenCanvas = hiddenCanvasRef.current;
-      const ctx = canvas?.getContext("2d", {
-        willReadFrequently: true,
-      });
-      const hiddenCtx = hiddenCanvas?.getContext("2d", {
-        willReadFrequently: true,
-      });
-      if (!video || !canvas || !hiddenCanvas || !ctx || !hiddenCtx) return;
-
-      const { width, height } = hiddenCanvas;
-      hiddenCtx.drawImage(video, 0, 0, width, height);
-      const imageData = hiddenCtx.getImageData(0, 0, width, height);
-      const pixels = imageData.data;
-
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#00ff00";
-      ctx.font = "10px monospace";
-      ctx.textBaseline = "top";
-
-      for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-          const pixelIndex = (y * width + x) * 4;
-          const r = pixels[pixelIndex] ?? 0;
-          const g = pixels[pixelIndex + 1] ?? 0;
-          const b = pixels[pixelIndex + 2] ?? 0;
-
-          const chars = ASCII_CHARS[animationSettingRef.current.chars];
-          const brightness = (r + g + b) / 3;
-          const charIndex = Math.floor((brightness / 255) * (chars.length - 1));
-
-          const char = chars[charIndex] ?? " ";
-          ctx.fillText(char, x * 8, y * 12);
-        }
-      }
-
-      animationReq = requestAnimationFrame(renderAscii);
+    const canvas = canvasRef.current;
+    const hiddenCanvas = hiddenCanvasRef.current;
+    const canvasCtx = canvas?.getContext("2d");
+    const hiddenCtx = hiddenCanvas?.getContext("2d");
+    if (
+      !video ||
+      !canvas ||
+      !hiddenCanvas ||
+      !canvasCtx ||
+      !hiddenCtx ||
+      !settingsRef.current.asciiMode
+    ) {
+      cancelAnimationFrame(animationReqRef.current);
+      return;
     }
 
-    video.addEventListener("play", renderAscii, { once: true });
+    const { width, height } = hiddenCanvas;
+    hiddenCtx.drawImage(video, 0, 0, width, height);
+    const imageData = hiddenCtx.getImageData(0, 0, width, height);
+    const pixels = imageData.data;
 
-    return () => {
-      cancelAnimationFrame(animationReq);
-      video.removeEventListener("play", renderAscii);
-    };
+    canvasCtx.fillStyle = "#0f0";
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pixelIndex = (y * width + x) * 4;
+        const r = pixels[pixelIndex] ?? 0;
+        const g = pixels[pixelIndex + 1] ?? 0;
+        const b = pixels[pixelIndex + 2] ?? 0;
+
+        const chars = ASCII_CHARS[settingsRef.current.chars];
+        const brightness = (r + g + b) / 3;
+        const charIndex = Math.floor((brightness / 255) * (chars.length - 1));
+
+        const char = chars[charIndex] ?? " ";
+
+        if (char != prevCharRef.current[y]?.[x]) {
+          canvasCtx.clearRect(
+            x * CHAR_RES.width,
+            y * CHAR_RES.height,
+            CHAR_RES.width,
+            CHAR_RES.height,
+          );
+          canvasCtx.fillText(char, x * CHAR_RES.width, y * CHAR_RES.height);
+          prevCharRef.current[y]![x] = char;
+        }
+      }
+    }
+
+    animationReqRef.current = requestAnimationFrame(renderAscii);
   }, []);
 
-  async function startCamera({ facingMode }: CameraSetting) {
+  const startCamera = useCallback(async () => {
     if (!videoRef.current) return;
     stopCamera();
 
@@ -101,24 +94,30 @@ export default function Camera({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode,
+          facingMode: settingsRef.current.facingMode,
           width: { ideal: width },
           height: { ideal: height },
         },
       });
 
       videoRef.current.srcObject = stream;
-      videoRef.current.onloadeddata = resizeCanvas;
-      await videoRef.current.play();
     } catch (error) {
       console.error(error);
       if (error instanceof Error) {
         alert(error.message);
       }
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    void startCamera();
+
+    return stopCamera;
+  }, [startCamera]);
 
   function stopCamera() {
+    cancelAnimationFrame(animationReqRef.current);
+
     const video = videoRef.current;
     if (!video) return;
     (video.srcObject as MediaStream | null)
@@ -133,44 +132,38 @@ export default function Camera({
     const hiddenCanvas = hiddenCanvasRef.current;
     if (!video || !canvas || !hiddenCanvas) return;
 
-    const { videoWidth: width, videoHeight: height } = video;
-    const asciiWidth = Math.floor(width / 10);
-    const asciiHeight = Math.floor(height / 10);
+    const canvasCtx = canvas.getContext("2d", { willReadFrequently: true });
+    const hiddenCtx = hiddenCanvas.getContext("2d", {
+      willReadFrequently: true,
+    });
+    canvasCtxRef.current = canvasCtx;
+    hiddenCtxRef.current = hiddenCtx;
+    if (!canvasCtx || !hiddenCtx) return;
 
-    hiddenCanvas.width = asciiWidth;
-    hiddenCanvas.height = asciiHeight;
+    const { videoWidth: width, videoHeight: height } = video;
+    if (!settingsRef.current.asciiMode) {
+      canvas.width = width;
+      canvas.height = height;
+      canvasCtx.setTransform(-1, 0, 0, 1, width, 0);
+      return;
+    }
+
+    const asciiWidth = Math.floor(width / (10 * settingsRef.current.res));
+    const asciiHeight = Math.floor(height / (10 * settingsRef.current.res));
+
     canvas.width = asciiWidth * CHAR_RES.width;
     canvas.height = asciiHeight * CHAR_RES.height;
+    hiddenCanvas.width = asciiWidth;
+    hiddenCanvas.height = asciiHeight;
 
-    hiddenCanvas.getContext("2d")?.setTransform(-1, 0, 0, 1, asciiWidth, 0);
-  }
+    canvasCtx.font = "10px Consolas, monospace";
+    canvasCtx.textBaseline = "top";
+    canvasCtx.fillStyle = "#0f0";
+    hiddenCtx.setTransform(-1, 0, 0, 1, asciiWidth, 0);
 
-  function takePhoto() {
-    const context = canvasRef.current?.getContext("2d");
-    if (!videoRef.current || !canvasRef.current || !context) return;
-
-    context.drawImage(
-      videoRef.current,
-      0,
-      0,
-      canvasRef.current.width,
-      canvasRef.current.height,
+    prevCharRef.current = Array.from({ length: asciiHeight }, () =>
+      Array.from({ length: asciiWidth }, () => ""),
     );
-
-    setPhotos([
-      {
-        url: canvasRef.current.toDataURL("image/jpeg", 0.8),
-        timestamp: Date.now().toString(),
-      },
-      ...photos,
-    ]);
-  }
-
-  function switchCamera() {
-    setCameraSetting((prev) => ({
-      ...prev,
-      facingMode: prev.facingMode == "user" ? "environment" : "user",
-    }));
   }
 
   return (
@@ -184,10 +177,21 @@ export default function Camera({
             : "translate-y-0 md:translate-x-0 md:translate-y-0",
         )}
       >
-        <video ref={videoRef} autoPlay playsInline muted className="hidden" />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={asciiMode ? "hidden" : "h-full w-full scale-x-[-1]"}
+          onLoadedData={(e) => {
+            void (e.target as HTMLVideoElement | null)?.play();
+            resizeCanvas();
+            renderAscii();
+          }}
+        />
         <canvas
           ref={canvasRef}
-          className="h-full w-full object-cover"
+          className={asciiMode ? "h-full w-full" : "hidden"}
           style={{ imageRendering: "pixelated" }}
         />
         <canvas ref={hiddenCanvasRef} className="hidden" />
@@ -195,7 +199,10 @@ export default function Camera({
 
       <Sidebar
         sidebarState={sidebarState}
-        animationSettingRef={animationSettingRef}
+        settingsRef={settingsRef}
+        resizeCanvas={resizeCanvas}
+        asciiModeState={asciiModeState}
+        renderAscii={renderAscii}
       />
 
       {/* Button Controls */}
@@ -220,7 +227,24 @@ export default function Camera({
         </Button>
         {/* Take Photo */}
         <Button
-          onClick={takePhoto}
+          onClick={() => {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const canvasCtx = canvasCtxRef.current;
+            if (!video || !canvas || !canvasCtx) return;
+
+            if (!settingsRef.current.asciiMode) {
+              canvasCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
+
+            setPhotos([
+              {
+                url: canvas.toDataURL("image/jpeg", 0.8),
+                timestamp: Date.now().toString(),
+              },
+              ...photos,
+            ]);
+          }}
           size="icon"
           className="h-16 w-16 cursor-pointer rounded-full border-3 border-white bg-transparent transition-all duration-200 hover:bg-white/20"
           title="Take Photo"
@@ -229,7 +253,12 @@ export default function Camera({
         </Button>
         {/* Switch Camera */}
         <Button
-          onClick={switchCamera}
+          onClick={() => {
+            settingsRef.current.facingMode =
+              settingsRef.current.facingMode == "user" ? "environment" : "user";
+
+            void startCamera();
+          }}
           variant="ghost"
           size="icon"
           className="h-12 w-12 cursor-pointer rounded-full border-2 border-white text-white transition-all duration-200 hover:bg-white/20 hover:text-white"

@@ -9,11 +9,9 @@ export interface Photo {
   timestamp: string;
 }
 
-export interface AnimationSetting {
+export interface CameraSettings {
+  asciiMode: boolean;
+  facingMode: "user" | "environment";
   chars: keyof typeof ASCII_CHARS;
   res: number;
-}
-
-export interface CameraSetting {
-  facingMode: "user" | "environment";
 }

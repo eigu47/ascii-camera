@@ -6,9 +6,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { ASCII_CHARS } from "@/lib/constants";
-import { AnimationSetting, UseState } from "@/lib/types";
+import { CameraSettings, UseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ChevronsUp } from "lucide-react";
 import { RefObject } from "preact";
@@ -16,10 +18,16 @@ import { useState } from "preact/hooks";
 
 export default function Sidebar({
   sidebarState: [sidebarOpen, setSidebarOpen],
-  animationSettingRef,
+  settingsRef,
+  resizeCanvas,
+  asciiModeState: [asciiMode, setAsciiMode],
+  renderAscii,
 }: {
   sidebarState: UseState<boolean>;
-  animationSettingRef: RefObject<AnimationSetting>;
+  settingsRef: RefObject<CameraSettings>;
+  resizeCanvas: () => void;
+  asciiModeState: UseState<boolean>;
+  renderAscii: () => void;
 }) {
   const [sidebarBtnRotation, setSidebarBtnRotation] = useState(0);
 
@@ -51,10 +59,10 @@ export default function Sidebar({
       >
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
           <Select
-            onValueChange={(chars: AnimationSetting["chars"]) =>
-              (animationSettingRef.current!.chars = chars)
+            onValueChange={(chars: CameraSettings["chars"]) =>
+              (settingsRef.current!.chars = chars)
             }
-            defaultValue={animationSettingRef.current?.chars}
+            defaultValue={settingsRef.current?.chars}
           >
             <SelectTrigger className="w-2/3">
               <SelectValue placeholder="Select a chars set" />
@@ -68,12 +76,32 @@ export default function Sidebar({
             </SelectContent>
           </Select>
 
+          <Separator />
+
           <Slider
-            onValueChange={([res]) => (animationSettingRef.current!.res = res!)}
-            defaultValue={[animationSettingRef.current!.res]}
+            onValueChange={([res]) => {
+              settingsRef.current!.res = res!;
+              resizeCanvas();
+            }}
+            defaultValue={[settingsRef.current!.res]}
             max={2}
             min={0.5}
             step={0.1}
+          />
+
+          <Separator />
+
+          <Switch
+            id="ascii-mode"
+            checked={asciiMode}
+            onCheckedChange={(val) => {
+              settingsRef.current!.asciiMode = val;
+              setAsciiMode(val);
+              resizeCanvas();
+              if (val) {
+                renderAscii();
+              }
+            }}
           />
         </div>
       </aside>
