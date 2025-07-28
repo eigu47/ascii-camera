@@ -1,28 +1,28 @@
+import CameraButtons from "@/components/CameraButtons";
+import CameraCanvas from "@/components/CameraCanvas";
 import Sidebar from "@/components/CameraSidebar";
-import { Button } from "@/components/ui/button";
 import {
   ASCII_CHARS,
   CAMERA_RES,
   CHAR_RES,
   INITIAL_STATE,
 } from "@/lib/constants";
-import { CameraSettings, Photo, UseState } from "@/lib/types";
-import { cn } from "@/lib/utils";
-import { RefreshCw } from "lucide-preact";
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { CameraSettings, Photo, SetState, UseState } from "@/lib/types";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 export default function Camera({
-  cameraState: [, setIsCamera],
   photoState: [photos, setPhotos],
+  setIsCamera,
 }: {
-  cameraState: UseState<boolean>;
   photoState: UseState<Photo[]>;
+  setIsCamera: SetState<boolean>;
 }) {
-  const settingsRef = useRef<CameraSettings>(INITIAL_STATE);
   const sidebarState = useState(false);
   const [sidebarOpen] = sidebarState;
   const asciiModeState = useState(INITIAL_STATE.asciiMode);
   const [asciiMode] = asciiModeState;
+
+  const settingsRef = useRef<CameraSettings>(INITIAL_STATE);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,7 +32,8 @@ export default function Camera({
   const prevCharRef = useRef<string[][]>([]);
   const animationReqRef = useRef(0);
 
-  const renderAscii = useCallback(() => {
+  // const renderAscii = useCallback(() => {
+  function renderAscii() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const hiddenCanvas = hiddenCanvasRef.current;
@@ -84,9 +85,10 @@ export default function Camera({
     }
 
     animationReqRef.current = requestAnimationFrame(renderAscii);
-  }, []);
+  } //, []);
 
-  const startCamera = useCallback(async () => {
+  // const startCamera = useCallback(async () => {
+  async function startCamera() {
     if (!videoRef.current) return;
     stopCamera();
 
@@ -107,13 +109,13 @@ export default function Camera({
         alert(error.message);
       }
     }
-  }, []);
+  } //, []);
 
   useEffect(() => {
     void startCamera();
 
     return stopCamera;
-  }, [startCamera]);
+  }, []);
 
   function stopCamera() {
     cancelAnimationFrame(animationReqRef.current);
@@ -168,34 +170,18 @@ export default function Camera({
 
   return (
     <div className="relative flex h-full w-full flex-row overflow-hidden">
-      {/* Camera */}
-      <div
-        className={cn(
-          "flex h-full flex-1 items-center justify-center bg-black transition-transform duration-300",
-          sidebarOpen
-            ? "translate-y-[-15vh] md:translate-x-[-10vw] md:translate-y-0"
-            : "translate-y-0 md:translate-x-0 md:translate-y-0",
-        )}
-      >
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className={asciiMode ? "hidden" : "h-full w-full scale-x-[-1]"}
-          onLoadedData={(e) => {
-            void (e.target as HTMLVideoElement | null)?.play();
-            resizeCanvas();
-            renderAscii();
-          }}
-        />
-        <canvas
-          ref={canvasRef}
-          className={asciiMode ? "h-full w-full" : "hidden"}
-          style={{ imageRendering: "pixelated" }}
-        />
-        <canvas ref={hiddenCanvasRef} className="hidden" />
-      </div>
+      <CameraCanvas
+        videoRef={videoRef}
+        canvasRef={canvasRef}
+        hiddenCanvasRef={hiddenCanvasRef}
+        sidebarOpen={sidebarOpen}
+        asciiMode={asciiMode}
+        onVideoLoadedData={(e) => {
+          void (e.target as HTMLVideoElement | null)?.play();
+          resizeCanvas();
+          renderAscii();
+        }}
+      />
 
       <Sidebar
         sidebarState={sidebarState}
@@ -205,68 +191,34 @@ export default function Camera({
         renderAscii={renderAscii}
       />
 
-      {/* Button Controls */}
-      <div className="absolute bottom-0 left-0 flex w-full items-center justify-around border-t border-white/10 bg-neutral-900 bg-gradient-to-t from-black/80 to-transparent p-4 md:justify-center md:gap-50 md:border-0 md:bg-transparent">
-        {/* Gallery */}
-        <Button
-          onClick={() => setIsCamera(false)}
-          variant="ghost"
-          size="icon"
-          className="h-12 w-12 cursor-pointer overflow-hidden rounded-lg border-2 border-white/50 p-0"
-          title="Open Gallery"
-        >
-          {photos.length > 0 ? (
-            <img
-              src={photos[0]?.url}
-              alt="Latest photo"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full bg-white/20" />
-          )}
-        </Button>
-        {/* Take Photo */}
-        <Button
-          onClick={() => {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            const canvasCtx = canvasCtxRef.current;
-            if (!video || !canvas || !canvasCtx) return;
+      <CameraButtons
+        photoUrl={photos[0]?.url}
+        openGallery={() => setIsCamera(false)}
+        takePhoto={() => {
+          const video = videoRef.current;
+          const canvas = canvasRef.current;
+          const canvasCtx = canvasCtxRef.current;
+          if (!video || !canvas || !canvasCtx) return;
 
-            if (!settingsRef.current.asciiMode) {
-              canvasCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            }
+          if (!settingsRef.current.asciiMode) {
+            canvasCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          }
 
-            setPhotos([
-              {
-                url: canvas.toDataURL("image/jpeg", 0.8),
-                timestamp: Date.now().toString(),
-              },
-              ...photos,
-            ]);
-          }}
-          size="icon"
-          className="h-16 w-16 cursor-pointer rounded-full border-3 border-white bg-transparent transition-all duration-200 hover:bg-white/20"
-          title="Take Photo"
-        >
-          <div className="mx-auto h-12 w-12 rounded-full bg-white" />
-        </Button>
-        {/* Switch Camera */}
-        <Button
-          onClick={() => {
-            settingsRef.current.facingMode =
-              settingsRef.current.facingMode == "user" ? "environment" : "user";
+          setPhotos([
+            {
+              url: canvas.toDataURL("image/jpeg", 0.8),
+              timestamp: Date.now().toString(),
+            },
+            ...photos,
+          ]);
+        }}
+        switchCamera={() => {
+          settingsRef.current.facingMode =
+            settingsRef.current.facingMode == "user" ? "environment" : "user";
 
-            void startCamera();
-          }}
-          variant="ghost"
-          size="icon"
-          className="h-12 w-12 cursor-pointer rounded-full border-2 border-white text-white transition-all duration-200 hover:bg-white/20 hover:text-white"
-          title="Switch Camera"
-        >
-          <RefreshCw className="mx-auto h-8 w-8" />
-        </Button>
-      </div>
+          void startCamera();
+        }}
+      />
     </div>
   );
 }

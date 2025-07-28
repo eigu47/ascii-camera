@@ -4,16 +4,15 @@ import { Photo } from "@/lib/types";
 import { useState } from "preact/hooks";
 
 export default function Home() {
-  const cameraState = useState(true);
-  const [isCamera, setIsCamera] = cameraState;
+  const [isCamera, setIsCamera] = useState(true);
   const photoState = useState<Photo[]>([]);
 
   return (
     <div className="h-screen bg-black text-white">
       {isCamera ? (
-        <Camera cameraState={cameraState} photoState={photoState} />
+        <Camera photoState={photoState} setIsCamera={setIsCamera} />
       ) : (
-        <Gallery photoState={photoState} setIsCamera={setIsCamera} />
+        <Gallery photoState={photoState} openCamera={() => setIsCamera(true)} />
       )}
     </div>
   );

@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useAutoAnimate } from "@/lib/hooks";
 import { Photo, UseState } from "@/lib/types";
 import { Download, Trash } from "lucide-preact";
 
 export default function Gallery({
   photoState: [photos, setPhotos],
-  setIsCamera,
+  openCamera,
 }: {
   photoState: UseState<Photo[]>;
-  setIsCamera: (isCamera: boolean) => void;
+  openCamera: () => void;
 }) {
   const [parent] = useAutoAnimate<HTMLDivElement>();
 
@@ -27,12 +28,11 @@ export default function Gallery({
     <div className="flex h-screen flex-col overflow-y-auto bg-black p-4 text-white">
       <div className="mb-4 flex items-center">
         <Button
-          onClick={() => setIsCamera(true)}
           variant="secondary"
           className="flex items-center gap-2 px-4 py-2"
+          onClick={openCamera}
         >
-          <span className="text-xl">←</span>
-          <span>Back to Camera</span>
+          ← Back to Camera
         </Button>
       </div>
       {photos.length === 0 ? (
@@ -41,7 +41,7 @@ export default function Gallery({
           <p className="mb-4 text-gray-400">
             Take your first photo to get started
           </p>
-          <Button onClick={() => setIsCamera(true)}>Open Camera</Button>
+          <Button onClick={openCamera}>Open Camera</Button>
         </div>
       ) : (
         <div
@@ -49,11 +49,11 @@ export default function Gallery({
           className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
         >
           {photos.map((photo) => (
-            <div
+            <Card
               key={photo.timestamp}
-              className="overflow-hidden rounded border border-gray-700 bg-gray-900"
+              className="overflow-hidden rounded border border-gray-700 bg-gray-900 p-0"
             >
-              <div className="group relative">
+              <CardContent className="group relative p-0">
                 <img
                   src={photo.url}
                   alt={`Photo taken on ${new Date(Number(photo.timestamp)).toLocaleString()}`}
@@ -61,29 +61,29 @@ export default function Gallery({
                 />
                 <div className="absolute inset-0 flex items-center justify-center gap-4 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
                   <Button
-                    onClick={() => downloadPhoto(photo)}
                     size="icon"
                     variant="secondary"
                     className="h-8 w-8 text-2xl"
+                    onClick={() => downloadPhoto(photo)}
                   >
                     <Download className="h-5 w-5" />
                   </Button>
                   <Button
-                    onClick={() => deletePhoto(photo)}
                     size="icon"
                     variant="destructive"
                     className="h-8 w-8 text-2xl"
+                    onClick={() => deletePhoto(photo)}
                   >
                     <Trash className="h-5 w-5" />
                   </Button>
                 </div>
-              </div>
-              <div className="p-2">
+              </CardContent>
+              <CardFooter className="p-2">
                 <p className="text-xs text-gray-400">
                   {new Date(Number(photo.timestamp)).toLocaleString()}
                 </p>
-              </div>
-            </div>
+              </CardFooter>
+            </Card>
           ))}
         </div>
       )}
