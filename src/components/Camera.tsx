@@ -13,10 +13,7 @@ export default function Camera({
   setIsCamera: SetState<boolean>;
 }) {
   const sidebarState = useState(false);
-  const [sidebarOpen] = sidebarState;
   const asciiModeState = useState(INITIAL_STATE.asciiMode);
-  const [asciiMode] = asciiModeState;
-
   const settingsRef = useRef<CameraSettings>(INITIAL_STATE);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -69,7 +66,7 @@ export default function Camera({
             CHAR_RES.height,
           );
 
-          if (!settingsRef.current.color) {
+          if (!settingsRef.current.colorMode) {
             canvasCtx.fillStyle = `rgb(${r.toString()}, ${g.toString()}, ${b.toString()})`;
           }
 
@@ -158,7 +155,7 @@ export default function Camera({
 
     canvasCtx.font = "10px Consolas, monospace";
     canvasCtx.textBaseline = "top";
-    if (settingsRef.current.color) {
+    if (settingsRef.current.colorMode) {
       canvasCtx.fillStyle = settingsRef.current.color;
     }
     hiddenCtx.setTransform(-1, 0, 0, 1, asciiWidth, 0);
@@ -170,13 +167,13 @@ export default function Camera({
   }
 
   return (
-    <div className="relative flex h-full w-full flex-row overflow-hidden">
+    <div className="relative flex h-full w-full flex-row">
       <CameraCanvas
         videoRef={videoRef}
         canvasRef={canvasRef}
         hiddenCanvasRef={hiddenCanvasRef}
-        sidebarOpen={sidebarOpen}
-        asciiMode={asciiMode}
+        sidebarState={sidebarState}
+        asciiState={asciiModeState}
         onVideoLoadedData={(e) => {
           void (e.target as HTMLVideoElement | null)?.play();
           resizeCanvas();

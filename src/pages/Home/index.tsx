@@ -8,7 +8,7 @@ export default function Home() {
   const photoState = useState<Photo[]>([]);
 
   return (
-    <div className="h-screen bg-black text-white">
+    <div className="h-dvh overflow-hidden bg-black text-white">
       {isCamera ? (
         <Camera photoState={photoState} setIsCamera={setIsCamera} />
       ) : (

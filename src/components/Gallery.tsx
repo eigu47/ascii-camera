@@ -51,7 +51,7 @@ export default function Gallery({
           {photos.map((photo) => (
             <Card
               key={photo.timestamp}
-              className="overflow-hidden rounded border border-gray-700 bg-gray-900 p-0"
+              className="gap-0 overflow-hidden rounded border border-gray-700 bg-gray-900 p-0"
             >
               <CardContent className="group relative p-0">
                 <img
@@ -59,7 +59,7 @@ export default function Gallery({
                   alt={`Photo taken on ${new Date(Number(photo.timestamp)).toLocaleString()}`}
                   className="aspect-square w-full object-cover"
                 />
-                <div className="absolute inset-0 flex items-center justify-center gap-4 bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute top-1 right-1 flex flex-col items-center justify-center gap-2 transition-opacity group-hover:opacity-100 md:inset-0 md:flex-row md:gap-6 md:bg-black/50 md:opacity-0">
                   <Button
                     size="icon"
                     variant="secondary"

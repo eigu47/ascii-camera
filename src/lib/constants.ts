@@ -3,6 +3,7 @@ import { getCharMap } from "@/lib/utils";
 
 export const INITIAL_STATE: CameraSettings = {
   asciiMode: true,
+  colorMode: true,
   color: "#0f0",
   facingMode: "user",
   res: 1,

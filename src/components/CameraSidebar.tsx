@@ -36,16 +36,18 @@ export default function Sidebar({
   renderAscii: () => void;
 }) {
   const [sidebarBtnRotation, setSidebarBtnRotation] = useState(0);
-  const [monocolor, setMonocolor] = useState({
-    on: !!settingsRef.current!.color,
-    color: settingsRef.current!.color,
-  });
+  const [settings, setSettings] = useState<CameraSettings>(
+    settingsRef.current!,
+  );
 
-  function handleColorChange(color: string) {
-    settingsRef.current!.color = color;
-    setMonocolor((prev) => ({
+  function handleChange(change: Partial<CameraSettings>) {
+    settingsRef.current = {
+      ...settingsRef.current!,
+      ...change,
+    };
+    setSettings((prev) => ({
       ...prev,
-      color,
+      ...change,
     }));
     resizeCanvas();
   }
@@ -63,13 +65,13 @@ export default function Sidebar({
         className="absolute right-3 bottom-20 z-30 cursor-pointer md:top-3 md:-rotate-90"
       >
         <ChevronsUp
-          className="h-6 w-6 text-black transition-transform duration-200"
+          className="h-6 w-6 transition-transform duration-200"
           style={{ transform: `rotate(${sidebarBtnRotation.toString()}deg)` }}
         />
       </Button>
       <aside
         className={cn(
-          "fixed bottom-0 mb-24 flex h-1/2 w-full max-w-full flex-col border-l border-white/10 bg-black transition-transform duration-300 md:top-0 md:right-0 md:h-full md:w-80",
+          "fixed bottom-0 mb-24 flex h-1/3 w-full max-w-full flex-col border-t border-white/10 bg-black transition-transform duration-300 md:top-0 md:right-0 md:h-full md:w-80 md:border-l",
           sidebarOpen
             ? "translate-y-0 md:translate-x-0 md:translate-y-0"
             : "translate-y-full md:translate-x-full md:translate-y-0",
@@ -88,9 +90,8 @@ export default function Sidebar({
               id="ascii-mode"
               checked={asciiMode}
               onCheckedChange={(asciiMode) => {
-                settingsRef.current!.asciiMode = asciiMode;
+                handleChange({ asciiMode });
                 setAsciiMode(asciiMode);
-                resizeCanvas();
                 if (asciiMode) {
                   renderAscii();
                 }
@@ -105,10 +106,10 @@ export default function Sidebar({
               Character Set
             </label>
             <Select
+              value={settings.chars}
               onValueChange={(chars: CameraSettings["chars"]) =>
-                (settingsRef.current!.chars = chars)
+                handleChange({ chars })
               }
-              defaultValue={settingsRef.current?.chars}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -130,11 +131,8 @@ export default function Sidebar({
               Resolution
             </label>
             <Slider
-              onValueChange={([res]) => {
-                settingsRef.current!.res = res!;
-                resizeCanvas();
-              }}
-              defaultValue={[settingsRef.current!.res]}
+              value={[settings.res]}
+              onValueChange={([res]) => handleChange({ res })}
               max={2}
               min={0.5}
               step={0.05}
@@ -147,11 +145,8 @@ export default function Sidebar({
             <div className="space-y-3">
               <label className="block text-sm text-white">Contrast</label>
               <Slider
-                onValueChange={([contrast]) => {
-                  settingsRef.current!.contrast = contrast!;
-                  resizeCanvas();
-                }}
-                defaultValue={[INITIAL_STATE.contrast]}
+                value={[settings.contrast]}
+                onValueChange={([contrast]) => handleChange({ contrast })}
                 max={500}
                 min={100}
                 step={10}
@@ -161,11 +156,8 @@ export default function Sidebar({
             <div className="space-y-3">
               <label className="block text-sm text-white">Brightness</label>
               <Slider
-                onValueChange={([brightness]) => {
-                  settingsRef.current!.brightness = brightness!;
-                  resizeCanvas();
-                }}
-                defaultValue={[INITIAL_STATE.brightness]}
+                value={[settings.brightness]}
+                onValueChange={([brightness]) => handleChange({ brightness })}
                 max={500}
                 min={100}
                 step={10}
@@ -185,23 +177,16 @@ export default function Sidebar({
               </label>
               <Switch
                 id="monocolor"
-                checked={monocolor.on}
-                onCheckedChange={(on) => {
-                  settingsRef.current!.color = on ? monocolor.color : undefined;
-                  setMonocolor((prev) => ({
-                    ...prev,
-                    on,
-                  }));
-                  resizeCanvas();
-                }}
+                checked={settings.colorMode}
+                onCheckedChange={(colorMode) => handleChange({ colorMode })}
               />
             </div>
 
             <Popover>
-              <PopoverTrigger asChild disabled={!monocolor.on}>
+              <PopoverTrigger asChild disabled={!settings.colorMode}>
                 <Button
-                  disabled={!monocolor.on}
-                  className="w-full text-black"
+                  disabled={!settings.colorMode}
+                  className="w-full"
                   variant="outline"
                 >
                   Choose Color
@@ -209,18 +194,24 @@ export default function Sidebar({
               </PopoverTrigger>
               <PopoverContent className="w-fit">
                 <HexColorPicker
-                  color={monocolor.color}
-                  onChange={handleColorChange}
+                  color={settings.color}
+                  onChange={(color) => handleChange({ color })}
                 />
                 <HexColorInput
                   prefixed
-                  color={monocolor.color}
-                  onChange={handleColorChange}
+                  color={settings.color}
+                  onChange={(color) => handleChange({ color })}
                   className="mt-2 w-full"
                 />
               </PopoverContent>
             </Popover>
           </div>
+
+          <Separator />
+
+          <Button variant="outline" onClick={() => handleChange(INITIAL_STATE)}>
+            Reset
+          </Button>
         </div>
       </aside>
     </>
