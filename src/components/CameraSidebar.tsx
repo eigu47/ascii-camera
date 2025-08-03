@@ -1,5 +1,10 @@
 import { Button } from "@/components/ui/button";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -15,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { ChevronsUp } from "lucide-react";
 import { RefObject } from "preact";
 import { useState } from "preact/hooks";
+import { HexColorInput, HexColorPicker } from "react-colorful";
 
 export default function Sidebar({
   sidebarState: [sidebarOpen, setSidebarOpen],
@@ -30,6 +36,19 @@ export default function Sidebar({
   renderAscii: () => void;
 }) {
   const [sidebarBtnRotation, setSidebarBtnRotation] = useState(0);
+  const [monocolor, setMonocolor] = useState({
+    on: !!settingsRef.current!.color,
+    color: settingsRef.current!.color,
+  });
+
+  function handleColorChange(color: string) {
+    settingsRef.current!.color = color;
+    setMonocolor((prev) => ({
+      ...prev,
+      color,
+    }));
+    resizeCanvas();
+  }
 
   return (
     <>
@@ -59,13 +78,12 @@ export default function Sidebar({
       >
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
           <Switch
-            id="ascii-mode"
             checked={asciiMode}
-            onCheckedChange={(val) => {
-              settingsRef.current!.asciiMode = val;
-              setAsciiMode(val);
+            onCheckedChange={(asciiMode) => {
+              settingsRef.current!.asciiMode = asciiMode;
+              setAsciiMode(asciiMode);
               resizeCanvas();
-              if (val) {
+              if (asciiMode) {
                 renderAscii();
               }
             }}
@@ -129,6 +147,40 @@ export default function Sidebar({
             min={100}
             step={10}
           />
+
+          <Separator />
+
+          <div>
+            <Switch
+              checked={monocolor.on}
+              onCheckedChange={(on) => {
+                settingsRef.current!.color = on ? monocolor.color : undefined;
+                setMonocolor((prev) => ({
+                  ...prev,
+                  on,
+                }));
+                resizeCanvas();
+              }}
+            />
+
+            <Popover>
+              <PopoverTrigger asChild disabled={!monocolor.on}>
+                <Button disabled={!monocolor.on}>Color</Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-fit">
+                <HexColorPicker
+                  color={monocolor.color}
+                  onChange={handleColorChange}
+                />
+                <HexColorInput
+                  prefixed
+                  color={monocolor.color}
+                  onChange={handleColorChange}
+                  className="mt-2 w-full"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </aside>
     </>

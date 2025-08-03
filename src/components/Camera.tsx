@@ -51,8 +51,6 @@ export default function Camera({
     const imageData = hiddenCtx.getImageData(0, 0, width, height);
     const pixels = imageData.data;
 
-    canvasCtx.fillStyle = "#0f0";
-
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const pixelIndex = (y * width + x) * 4;
@@ -70,6 +68,11 @@ export default function Camera({
             CHAR_RES.width,
             CHAR_RES.height,
           );
+
+          if (!settingsRef.current.color) {
+            canvasCtx.fillStyle = `rgb(${r.toString()}, ${g.toString()}, ${b.toString()})`;
+          }
+
           canvasCtx.fillText(char, x * CHAR_RES.width, y * CHAR_RES.height);
           prevCharRef.current[y]![x] = char;
         }
@@ -155,7 +158,9 @@ export default function Camera({
 
     canvasCtx.font = "10px Consolas, monospace";
     canvasCtx.textBaseline = "top";
-    canvasCtx.fillStyle = "#0f0";
+    if (settingsRef.current.color) {
+      canvasCtx.fillStyle = settingsRef.current.color;
+    }
     hiddenCtx.setTransform(-1, 0, 0, 1, asciiWidth, 0);
     hiddenCtx.filter = filterStr;
 

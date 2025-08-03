@@ -3,6 +3,7 @@ import { getCharMap } from "@/lib/utils";
 
 export const INITIAL_STATE: CameraSettings = {
   asciiMode: true,
+  color: "#0f0",
   facingMode: "user",
   res: 1,
   chars: "detailed",
@@ -31,7 +32,6 @@ export const CHAR_MAP = (
 ).reduce(
   (acc, [type, chars]) => {
     acc[type] = getCharMap(chars);
-    console.log({ type, chars: getCharMap(chars) });
     return acc;
   },
   {} as Record<keyof typeof ASCII_CHARS, string[]>,
