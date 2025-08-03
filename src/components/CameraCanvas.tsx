@@ -31,12 +31,14 @@ export default function CameraCanvas({
         autoPlay
         playsInline
         muted
-        className={asciiMode ? "hidden" : "h-full w-full scale-x-[-1]"}
+        className={
+          asciiMode ? "hidden" : "h-full w-full scale-x-[-1] object-contain"
+        }
         onLoadedData={onVideoLoadedData}
       />
       <canvas
         ref={canvasRef}
-        className={asciiMode ? "h-full w-full" : "hidden"}
+        className={asciiMode ? "h-full w-full object-contain" : "hidden"}
         style={{ imageRendering: "pixelated" }}
       />
       <canvas ref={hiddenCanvasRef} className="hidden" />

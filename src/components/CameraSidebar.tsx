@@ -76,96 +76,136 @@ export default function Sidebar({
         )}
         style={{ willChange: "transform" }}
       >
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-          <Switch
-            checked={asciiMode}
-            onCheckedChange={(asciiMode) => {
-              settingsRef.current!.asciiMode = asciiMode;
-              setAsciiMode(asciiMode);
-              resizeCanvas();
-              if (asciiMode) {
-                renderAscii();
-              }
-            }}
-          />
-
-          <Separator />
-
-          <Select
-            onValueChange={(chars: CameraSettings["chars"]) =>
-              (settingsRef.current!.chars = chars)
-            }
-            defaultValue={settingsRef.current?.chars}
-          >
-            <SelectTrigger className="w-2/3">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.keys(ASCII_CHARS).map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Separator />
-
-          <Slider
-            onValueChange={([res]) => {
-              settingsRef.current!.res = res!;
-              resizeCanvas();
-            }}
-            defaultValue={[settingsRef.current!.res]}
-            max={2}
-            min={0.5}
-            step={0.05}
-          />
-
-          <Separator />
-
-          <Slider
-            onValueChange={([contrast]) => {
-              settingsRef.current!.contrast = contrast!;
-              resizeCanvas();
-            }}
-            defaultValue={[INITIAL_STATE.contrast]}
-            max={500}
-            min={100}
-            step={10}
-          />
-
-          <Separator />
-
-          <Slider
-            onValueChange={([brightness]) => {
-              settingsRef.current!.brightness = brightness!;
-              resizeCanvas();
-            }}
-            defaultValue={[INITIAL_STATE.brightness]}
-            max={500}
-            min={100}
-            step={10}
-          />
-
-          <Separator />
-
-          <div>
+        <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6 md:mt-10">
+          <div className="flex justify-between">
+            <label
+              className="text-sm font-medium text-white"
+              htmlFor="ascii-mode"
+            >
+              ASCII Mode
+            </label>
             <Switch
-              checked={monocolor.on}
-              onCheckedChange={(on) => {
-                settingsRef.current!.color = on ? monocolor.color : undefined;
-                setMonocolor((prev) => ({
-                  ...prev,
-                  on,
-                }));
+              id="ascii-mode"
+              checked={asciiMode}
+              onCheckedChange={(asciiMode) => {
+                settingsRef.current!.asciiMode = asciiMode;
+                setAsciiMode(asciiMode);
                 resizeCanvas();
+                if (asciiMode) {
+                  renderAscii();
+                }
               }}
             />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-white">
+              Character Set
+            </label>
+            <Select
+              onValueChange={(chars: CameraSettings["chars"]) =>
+                (settingsRef.current!.chars = chars)
+              }
+              defaultValue={settingsRef.current?.chars}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(ASCII_CHARS).map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-white">
+              Resolution
+            </label>
+            <Slider
+              onValueChange={([res]) => {
+                settingsRef.current!.res = res!;
+                resizeCanvas();
+              }}
+              defaultValue={[settingsRef.current!.res]}
+              max={2}
+              min={0.5}
+              step={0.05}
+            />
+          </div>
+
+          <Separator />
+
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <label className="block text-sm text-white">Contrast</label>
+              <Slider
+                onValueChange={([contrast]) => {
+                  settingsRef.current!.contrast = contrast!;
+                  resizeCanvas();
+                }}
+                defaultValue={[INITIAL_STATE.contrast]}
+                max={500}
+                min={100}
+                step={10}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm text-white">Brightness</label>
+              <Slider
+                onValueChange={([brightness]) => {
+                  settingsRef.current!.brightness = brightness!;
+                  resizeCanvas();
+                }}
+                defaultValue={[INITIAL_STATE.brightness]}
+                max={500}
+                min={100}
+                step={10}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label
+                className="text-sm font-medium text-white"
+                htmlFor="monocolor"
+              >
+                Monocolor
+              </label>
+              <Switch
+                id="monocolor"
+                checked={monocolor.on}
+                onCheckedChange={(on) => {
+                  settingsRef.current!.color = on ? monocolor.color : undefined;
+                  setMonocolor((prev) => ({
+                    ...prev,
+                    on,
+                  }));
+                  resizeCanvas();
+                }}
+              />
+            </div>
 
             <Popover>
               <PopoverTrigger asChild disabled={!monocolor.on}>
-                <Button disabled={!monocolor.on}>Color</Button>
+                <Button
+                  disabled={!monocolor.on}
+                  className="w-full text-black"
+                  variant="outline"
+                >
+                  Choose Color
+                </Button>
               </PopoverTrigger>
               <PopoverContent className="w-fit">
                 <HexColorPicker
