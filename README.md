@@ -1,15 +1,12 @@
-# `create-preact`
+# ASCII Camera
 
-<h2 align="center">
-  <img height="256" width="256" src="./src/assets/preact.svg">
-</h2>
+Convert your webcam to ASCII art in real-time.
 
-<h3 align="center">Get started using Preact and Vite!</h3>
+**Live Demo:** [eiguchipablo.dev/ascii-camera](https://eiguchipablo.dev/ascii-camera)
 
-## Getting Started
+## Features
 
--   `npm run dev` - Starts a dev server at http://localhost:5173/
-
--   `npm run build` - Builds for production, emitting to `dist/`. Prerenders all found routes in app to static HTML
-
--   `npm run preview` - Starts a server at http://localhost:4173/ to test production build locally
+- Live camera feed to ASCII conversion
+- Adjustable resolution and contrast
+- Gallery to save captures
+- Real-time preview
