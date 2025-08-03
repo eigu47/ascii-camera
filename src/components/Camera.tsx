@@ -14,6 +14,7 @@ export default function Camera({
 }) {
   const sidebarState = useState(false);
   const asciiModeState = useState(INITIAL_STATE.asciiMode);
+  const facingModeState = useState(INITIAL_STATE.facingMode);
   const settingsRef = useRef<CameraSettings>(INITIAL_STATE);
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -140,7 +141,9 @@ export default function Camera({
     if (!settingsRef.current.asciiMode) {
       canvas.width = width;
       canvas.height = height;
-      canvasCtx.setTransform(-1, 0, 0, 1, width, 0);
+      if (settingsRef.current.facingMode == "user") {
+        canvasCtx.setTransform(-1, 0, 0, 1, width, 0);
+      }
       video.style.filter = filterStr;
       return;
     }
@@ -158,7 +161,9 @@ export default function Camera({
     if (settingsRef.current.colorMode) {
       canvasCtx.fillStyle = settingsRef.current.color;
     }
-    hiddenCtx.setTransform(-1, 0, 0, 1, asciiWidth, 0);
+    if (settingsRef.current.facingMode == "user") {
+      hiddenCtx.setTransform(-1, 0, 0, 1, asciiWidth, 0);
+    }
     hiddenCtx.filter = filterStr;
 
     prevCharRef.current = Array.from({ length: asciiHeight }, () =>
@@ -174,6 +179,7 @@ export default function Camera({
         hiddenCanvasRef={hiddenCanvasRef}
         sidebarState={sidebarState}
         asciiState={asciiModeState}
+        facingModeState={facingModeState}
         onVideoLoadedData={(e) => {
           void (e.target as HTMLVideoElement | null)?.play();
           resizeCanvas();
@@ -213,6 +219,7 @@ export default function Camera({
         switchCamera={() => {
           settingsRef.current.facingMode =
             settingsRef.current.facingMode == "user" ? "environment" : "user";
+          facingModeState[1](settingsRef.current.facingMode);
 
           void startCamera();
         }}

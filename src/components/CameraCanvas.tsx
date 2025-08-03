@@ -1,7 +1,7 @@
-import { UseState } from "@/lib/types";
+import { CameraSettings, UseState } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { RefObject } from "preact";
-import { TargetedEvent } from "preact/compat";
+import { TargetedEvent, useState } from "preact/compat";
 import { useSwipeable } from "react-swipeable";
 
 export default function CameraCanvas({
@@ -10,6 +10,7 @@ export default function CameraCanvas({
   hiddenCanvasRef,
   sidebarState: [sidebarOpen, setSidebarOpen],
   asciiState: [asciiMode],
+  facingModeState: [facingMode],
   onVideoLoadedData,
 }: {
   videoRef: RefObject<HTMLVideoElement>;
@@ -17,6 +18,7 @@ export default function CameraCanvas({
   hiddenCanvasRef: RefObject<HTMLCanvasElement>;
   sidebarState: UseState<boolean>;
   asciiState: UseState<boolean>;
+  facingModeState: UseState<CameraSettings["facingMode"]>;
   onVideoLoadedData: (e: TargetedEvent<HTMLVideoElement>) => void;
 }) {
   const swipeHandler = useSwipeable({
@@ -45,7 +47,11 @@ export default function CameraCanvas({
         playsInline
         muted
         className={
-          asciiMode ? "hidden" : "h-full w-full scale-x-[-1] object-contain"
+          asciiMode
+            ? "hidden"
+            : facingMode == "user"
+              ? "h-full w-full scale-x-[-1] object-contain"
+              : "h-full w-full object-contain"
         }
         onLoadedData={onVideoLoadedData}
       />
